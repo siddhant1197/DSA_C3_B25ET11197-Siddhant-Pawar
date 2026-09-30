@@ -1,0 +1,316 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX 50          /* maximum number of employee records */
+#define NAME_LEN 30
+#define DESIG_LEN 20
+
+/* Structure for one employee record */
+struct Employee {
+    int   id;
+    char  name[NAME_LEN];
+    char  designation[DESIG_LEN];
+    float salary;
+};
+
+struct Employee emp[MAX];   /* the database: array of structures */
+int n = 0;                  /* current number of records */
+
+/* ------------------------- input helpers ------------------------- */
+
+void read_string(const char *prompt, char *dest, int size) {
+    printf("%s", prompt);
+    if (fgets(dest, size, stdin) == NULL) {
+        dest[0] = '\0';
+        return;
+    }
+    dest[strcspn(dest, "\n")] = '\0';
+}
+
+int read_int(const char *prompt) {
+    char buf[50];
+    int value;
+    while (1) {
+        printf("%s", prompt);
+        if (fgets(buf, sizeof(buf), stdin) != NULL && sscanf(buf, "%d", &value) == 1)
+            return value;
+        printf("Invalid input! Please enter a whole number.\n");
+    }
+}
+
+float read_float(const char *prompt) {
+    char buf[50];
+    float value;
+    while (1) {
+        printf("%s", prompt);
+        if (fgets(buf, sizeof(buf), stdin) != NULL && sscanf(buf, "%f", &value) == 1)
+            return value;
+        printf("Invalid input! Please enter a number.\n");
+    }
+}
+
+/* Returns index of employee with given id, or -1 if not found */
+int find_by_id(int id) {
+    int i;
+    for (i = 0; i < n; i++)
+        if (emp[i].id == id)
+            return i;
+    return -1;
+}
+
+/* Case-insensitive substring search helper */
+int contains_ignore_case(const char *text, const char *pattern) {
+    char t[NAME_LEN], p[NAME_LEN];
+    int i;
+    for (i = 0; text[i] && i < NAME_LEN - 1; i++) t[i] = tolower((unsigned char)text[i]);
+    t[i] = '\0';
+    for (i = 0; pattern[i] && i < NAME_LEN - 1; i++) p[i] = tolower((unsigned char)pattern[i]);
+    p[i] = '\0';
+    return strstr(t, p) != NULL;
+}
+
+/* Reads one full record from the user. Returns 1 on success, 0 if the id is a duplicate */
+int read_record(struct Employee *e) {
+    e->id = read_int("  Employee ID     : ");
+    if (find_by_id(e->id) != -1) {
+        printf("  Error: Employee ID %d already exists.\n", e->id);
+        return 0;
+    }
+    read_string("  Name            : ", e->name, NAME_LEN);
+    read_string("  Designation     : ", e->designation, DESIG_LEN);
+    e->salary = read_float("  Salary          : ");
+    return 1;
+}
+
+void print_header(void) {
+    printf("\n%-6s %-*s %-*s %10s\n", "ID", NAME_LEN - 1, "Name",
+           DESIG_LEN - 1, "Designation", "Salary");
+    printf("--------------------------------------------------------------------\n");
+}
+
+void print_record(const struct Employee *e) {
+    printf("%-6d %-*s %-*s %10.2f\n", e->id, NAME_LEN - 1, e->name,
+           DESIG_LEN - 1, e->designation, e->salary);
+}
+
+/* --------------------------- operations --------------------------- */
+
+/* CREATE: start a new database (discards any existing records) */
+void create_db(void) {
+    int count, i;
+
+    if (n > 0) {
+        char ans[10];
+        read_string("Database already has records. Overwrite? (y/n): ", ans, sizeof(ans));
+        if (tolower((unsigned char)ans[0]) != 'y') {
+            printf("Create cancelled.\n");
+            return;
+        }
+    }
+    n = 0;
+
+    count = read_int("How many employee records do you want to create? ");
+    if (count < 1 || count > MAX) {
+        printf("Invalid count! Must be between 1 and %d.\n", MAX);
+        return;
+    }
+
+    for (i = 0; i < count; i++) {
+        printf("\nEnter details of employee %d:\n", i + 1);
+        while (!read_record(&emp[n]))
+            printf("  Please try again.\n");
+        n++;
+    }
+    printf("\n%d record(s) created successfully.\n", n);
+}
+
+/* DISPLAY: show all records */
+void display_db(void) {
+    int i;
+    if (n == 0) {
+        printf("Database is empty.\n");
+        return;
+    }
+    print_header();
+    for (i = 0; i < n; i++)
+        print_record(&emp[i]);
+    printf("\nTotal records: %d\n", n);
+}
+
+/* APPEND: add one record at the end */
+void append_record(void) {
+    if (n >= MAX) {
+        printf("Database is full! Maximum %d records allowed.\n", MAX);
+        return;
+    }
+    printf("\nEnter details of the new employee:\n");
+    if (read_record(&emp[n])) {
+        n++;
+        printf("Record appended successfully.\n");
+    }
+}
+
+/* MODIFY: change an existing record, found by ID */
+void modify_record(void) {
+    int id, idx, choice;
+
+    if (n == 0) {
+        printf("Database is empty.\n");
+        return;
+    }
+    id = read_int("Enter the ID of the employee to modify: ");
+    idx = find_by_id(id);
+    if (idx == -1) {
+        printf("Employee ID %d not found.\n", id);
+        return;
+    }
+
+    printf("\nCurrent record:");
+    print_header();
+    print_record(&emp[idx]);
+
+    printf("\nWhat do you want to modify?\n");
+    printf("1. Name\n2. Designation\n3. Salary\n4. All fields (except ID)\n");
+    choice = read_int("Enter your choice: ");
+
+    switch (choice) {
+        case 1:
+            read_string("  New name        : ", emp[idx].name, NAME_LEN);
+            break;
+        case 2:
+            read_string("  New designation : ", emp[idx].designation, DESIG_LEN);
+            break;
+        case 3:
+            emp[idx].salary = read_float("  New salary      : ");
+            break;
+        case 4:
+            read_string("  New name        : ", emp[idx].name, NAME_LEN);
+            read_string("  New designation : ", emp[idx].designation, DESIG_LEN);
+            emp[idx].salary = read_float("  New salary      : ");
+            break;
+        default:
+            printf("Invalid choice! No changes made.\n");
+            return;
+    }
+    printf("\nRecord modified successfully:");
+    print_header();
+    print_record(&emp[idx]);
+}
+
+/* SEARCH: by ID (exact) or by name (partial, case-insensitive) */
+void search_record(void) {
+    int choice, i, found = 0;
+
+    if (n == 0) {
+        printf("Database is empty.\n");
+        return;
+    }
+    printf("\nSearch by:\n1. Employee ID\n2. Name\n");
+    choice = read_int("Enter your choice: ");
+
+    if (choice == 1) {
+        int id = read_int("Enter Employee ID to search: ");
+        int idx = find_by_id(id);
+        if (idx == -1) {
+            printf("Employee ID %d not found.\n", id);
+        } else {
+            print_header();
+            print_record(&emp[idx]);
+        }
+    } else if (choice == 2) {
+        char key[NAME_LEN];
+        read_string("Enter name (or part of it) to search: ", key, NAME_LEN);
+        for (i = 0; i < n; i++) {
+            if (contains_ignore_case(emp[i].name, key)) {
+                if (!found)
+                    print_header();
+                print_record(&emp[i]);
+                found++;
+            }
+        }
+        if (!found)
+            printf("No employee found matching \"%s\".\n", key);
+        else
+            printf("\n%d record(s) found.\n", found);
+    } else {
+        printf("Invalid choice!\n");
+    }
+}
+
+/* SORT: bubble sort on the chosen field, ascending or descending */
+void sort_db(void) {
+    int field, order, i, j, swap;
+    struct Employee temp;
+
+    if (n < 2) {
+        printf("Need at least 2 records to sort.\n");
+        return;
+    }
+    printf("\nSort by:\n1. Employee ID\n2. Name\n3. Salary\n");
+    field = read_int("Enter your choice: ");
+    if (field < 1 || field > 3) {
+        printf("Invalid choice!\n");
+        return;
+    }
+    printf("\nOrder:\n1. Ascending\n2. Descending\n");
+    order = read_int("Enter your choice: ");
+    if (order != 1 && order != 2) {
+        printf("Invalid choice!\n");
+        return;
+    }
+
+    for (i = 0; i < n - 1; i++) {
+        for (j = 0; j < n - i - 1; j++) {
+            int cmp;
+            if (field == 1)
+                cmp = (emp[j].id > emp[j + 1].id) - (emp[j].id < emp[j + 1].id);
+            else if (field == 2)
+                cmp = strcmp(emp[j].name, emp[j + 1].name);
+            else
+                cmp = (emp[j].salary > emp[j + 1].salary) - (emp[j].salary < emp[j + 1].salary);
+
+            swap = (order == 1) ? (cmp > 0) : (cmp < 0);
+            if (swap) {
+                temp = emp[j];
+                emp[j] = emp[j + 1];
+                emp[j + 1] = temp;
+            }
+        }
+    }
+    printf("\nDatabase sorted successfully.\n");
+    display_db();
+}
+
+/* ----------------------------- main ------------------------------ */
+
+int main(void) {
+    int choice;
+
+    while (1) {
+        printf("\n======= EMPLOYEE DATABASE MANAGEMENT =======\n");
+        printf("1. Create\n");
+        printf("2. Display\n");
+        printf("3. Modify\n");
+        printf("4. Append\n");
+        printf("5. Search\n");
+        printf("6. Sort\n");
+        printf("7. Exit\n");
+        choice = read_int("Enter your choice: ");
+
+        switch (choice) {
+            case 1: create_db();     break;
+            case 2: display_db();    break;
+            case 3: modify_record(); break;
+            case 4: append_record(); break;
+            case 5: search_record(); break;
+            case 6: sort_db();       break;
+            case 7:
+                printf("Exiting program.\n");
+                return 0;
+            default:
+                printf("Invalid choice! Please try again.\n");
+        }
+    }
+}
