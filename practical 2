@@ -1,0 +1,83 @@
+#include <stdio.h>
+
+#define MAX 100
+
+/* Recursive binary search.
+   Searches a[low..high] for key. Returns the index if found, otherwise -1.
+   Each call halves the search range, so time is O(log n). */
+int binary_search(int a[], int low, int high, int key) {
+    int mid;
+
+    if (low > high)                 /* base case 1: range is empty => not found */
+        return -1;
+
+    mid = low + (high - low) / 2;   /* avoids overflow of (low + high) */
+
+    if (a[mid] == key)              /* base case 2: key found */
+        return mid;
+    else if (key < a[mid])          /* search the left half */
+        return binary_search(a, low, mid - 1, key);
+    else                            /* search the right half */
+        return binary_search(a, mid + 1, high, key);
+}
+
+int read_int(const char *prompt) {
+    char buf[50];
+    int value;
+    while (1) {
+        printf("%s", prompt);
+        if (fgets(buf, sizeof(buf), stdin) != NULL && sscanf(buf, "%d", &value) == 1)
+            return value;
+        printf("Invalid input! Please enter a whole number.\n");
+    }
+}
+
+int main(void) {
+    int a[MAX], n, i, key, result, sorted, again;
+
+    n = read_int("Enter number of elements: ");
+    while (n < 1 || n > MAX) {
+        printf("Invalid size! Must be between 1 and %d.\n", MAX);
+        n = read_int("Enter number of elements: ");
+    }
+
+    /* Read elements; keep asking until the array is in ascending order */
+    do {
+        printf("Enter %d integers in ascending (sorted) order:\n", n);
+        for (i = 0; i < n; i++) {
+            char prompt[30];
+            sprintf(prompt, "  Element %d: ", i + 1);
+            a[i] = read_int(prompt);
+        }
+
+        sorted = 1;
+        for (i = 1; i < n; i++) {
+            if (a[i] < a[i - 1]) {
+                sorted = 0;
+                break;
+            }
+        }
+        if (!sorted)
+            printf("\nArray is not sorted! Binary search needs a sorted array. Please re-enter.\n\n");
+    } while (!sorted);
+
+    printf("\nSorted array: ");
+    for (i = 0; i < n; i++)
+        printf("%d ", a[i]);
+    printf("\n");
+
+    do {
+        key = read_int("\nEnter the element to search: ");
+        result = binary_search(a, 0, n - 1, key);
+
+        if (result == -1)
+            printf("Element %d NOT found in the array.\n", key);
+        else
+            printf("Element %d found at index %d (position %d).\n", key, result, result + 1);
+
+        again = read_int("Search again? (1 = Yes, 0 = No): ");
+    } while (again == 1);
+
+    printf("Exiting program.\n");
+    return 0;
+}
