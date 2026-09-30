@@ -1,0 +1,102 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+/* Node of the linked list */
+struct Node {
+    int data;
+    struct Node *next;
+};
+
+/* 'top' always points to the most recently inserted node */
+struct Node *top = NULL;
+
+/* INSERT (push) - add a new node at the top */
+void insert(int value) {
+    struct Node *newNode = (struct Node *)malloc(sizeof(struct Node));
+    if (newNode == NULL) {
+        printf("Stack Overflow! Memory allocation failed.\n");
+        return;
+    }
+    newNode->data = value;
+    newNode->next = top;   /* link new node to the old top */
+    top = newNode;         /* new node becomes the top */
+    printf("%d inserted into the stack.\n", value);
+}
+
+/* DELETE (pop) - remove the node from the top */
+void delete_element(void) {
+    if (top == NULL) {
+        printf("Stack Underflow! Stack is empty.\n");
+        return;
+    }
+    struct Node *temp = top;
+    printf("%d deleted from the stack.\n", temp->data);
+    top = top->next;
+    free(temp);
+}
+
+/* DISPLAY - print elements from top to bottom */
+void display(void) {
+    if (top == NULL) {
+        printf("Stack is empty.\n");
+        return;
+    }
+    struct Node *temp = top;
+    printf("Stack elements (top to bottom):\n");
+    while (temp != NULL) {
+        printf("| %d |", temp->data);
+        if (temp == top)
+            printf("  <-- TOP");
+        printf("\n");
+        temp = temp->next;
+    }
+    printf("-----\n");
+}
+
+int main(void) {
+    int choice, value;
+
+    while (1) {
+        printf("\n===== STACK USING LINKED LIST =====\n");
+        printf("1. INSERT (Push)\n");
+        printf("2. DELETE (Pop)\n");
+        printf("3. DISPLAY\n");
+        printf("4. EXIT\n");
+        printf("Enter your choice: ");
+
+        if (scanf("%d", &choice) != 1) {
+            printf("Invalid input! Please enter a number.\n");
+            while (getchar() != '\n');   /* clear input buffer */
+            continue;
+        }
+
+        switch (choice) {
+            case 1:
+                printf("Enter the value to insert: ");
+                if (scanf("%d", &value) != 1) {
+                    printf("Invalid input!\n");
+                    while (getchar() != '\n');
+                    break;
+                }
+                insert(value);
+                break;
+            case 2:
+                delete_element();
+                break;
+            case 3:
+                display();
+                break;
+            case 4:
+                /* free any remaining nodes before exiting */
+                while (top != NULL) {
+                    struct Node *temp = top;
+                    top = top->next;
+                    free(temp);
+                }
+                printf("Exiting program.\n");
+                return 0;
+            default:
+                printf("Invalid choice! Please try again.\n");
+        }
+    }
+}
