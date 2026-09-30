@@ -1,0 +1,221 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX 100
+
+long comparisons = 0;   /* counts element comparisons in the last sort */
+
+/* ------------------------ helper functions ------------------------ */
+
+void swap(int *a, int *b) {
+    int t = *a;
+    *a = *b;
+    *b = t;
+}
+
+void print_array(const int a[], int n) {
+    int i;
+    for (i = 0; i < n; i++)
+        printf("%d ", a[i]);
+    printf("\n");
+}
+
+int read_int(const char *prompt) {
+    char buf[50];
+    int value;
+    while (1) {
+        printf("%s", prompt);
+        if (fgets(buf, sizeof(buf), stdin) != NULL && sscanf(buf, "%d", &value) == 1)
+            return value;
+        printf("Invalid input! Please enter a whole number.\n");
+    }
+}
+
+/* -------------------------- 1. BUBBLE SORT -------------------------- */
+/* Repeatedly swaps adjacent elements that are out of order.
+   The largest element "bubbles" to the end on each pass.
+   Time: O(n^2) worst/average, O(n) best (already sorted, with the flag). */
+void bubble_sort(int a[], int n) {
+    int i, j, swapped;
+    for (i = 0; i < n - 1; i++) {
+        swapped = 0;
+        for (j = 0; j < n - i - 1; j++) {
+            comparisons++;
+            if (a[j] > a[j + 1]) {
+                swap(&a[j], &a[j + 1]);
+                swapped = 1;
+            }
+        }
+        if (!swapped)       /* no swaps in a pass => already sorted */
+            break;
+    }
+}
+
+/* ------------------------ 2. SELECTION SORT ------------------------ */
+/* Finds the smallest element in the unsorted part and places it at the
+   front of that part.
+   Time: O(n^2) in all cases. Makes at most n-1 swaps. */
+void selection_sort(int a[], int n) {
+    int i, j, min;
+    for (i = 0; i < n - 1; i++) {
+        min = i;
+        for (j = i + 1; j < n; j++) {
+            comparisons++;
+            if (a[j] < a[min])
+                min = j;
+        }
+        if (min != i)
+            swap(&a[i], &a[min]);
+    }
+}
+
+/* ------------------------ 3. INSERTION SORT ------------------------ */
+/* Takes each element and inserts it into its correct place among the
+   already-sorted elements on its left.
+   Time: O(n^2) worst/average, O(n) best. Good for small or nearly sorted data. */
+void insertion_sort(int a[], int n) {
+    int i, j, key;
+    for (i = 1; i < n; i++) {
+        key = a[i];
+        j = i - 1;
+        while (j >= 0) {
+            comparisons++;
+            if (a[j] > key) {
+                a[j + 1] = a[j];    /* shift larger element right */
+                j--;
+            } else {
+                break;
+            }
+        }
+        a[j + 1] = key;
+    }
+}
+
+/* --------------------------- 4. QUICK SORT --------------------------- */
+/* Divide and conquer: choose a pivot, place smaller elements to its left
+   and larger to its right, then sort both parts recursively.
+   Time: O(n log n) average, O(n^2) worst. */
+int partition(int a[], int low, int high) {
+    int pivot = a[high];        /* last element is the pivot */
+    int i = low - 1, j;
+    for (j = low; j < high; j++) {
+        comparisons++;
+        if (a[j] <= pivot) {
+            i++;
+            swap(&a[i], &a[j]);
+        }
+    }
+    swap(&a[i + 1], &a[high]);  /* put pivot in its final position */
+    return i + 1;
+}
+
+void quick_sort(int a[], int low, int high) {
+    if (low < high) {
+        int p = partition(a, low, high);
+        quick_sort(a, low, p - 1);
+        quick_sort(a, p + 1, high);
+    }
+}
+
+/* --------------------------- 5. MERGE SORT --------------------------- */
+/* Divide and conquer: split the array in halves, sort each half
+   recursively, then merge the two sorted halves.
+   Time: O(n log n) in all cases. Needs O(n) extra space. */
+void merge(int a[], int low, int mid, int high) {
+    int temp[MAX];
+    int i = low, j = mid + 1, k = 0, x;
+
+    while (i <= mid && j <= high) {
+        comparisons++;
+        if (a[i] <= a[j])
+            temp[k++] = a[i++];
+        else
+            temp[k++] = a[j++];
+    }
+    while (i <= mid)  temp[k++] = a[i++];
+    while (j <= high) temp[k++] = a[j++];
+
+    for (x = 0; x < k; x++)
+        a[low + x] = temp[x];
+}
+
+void merge_sort(int a[], int low, int high) {
+    if (low < high) {
+        int mid = low + (high - low) / 2;
+        merge_sort(a, low, mid);
+        merge_sort(a, mid + 1, high);
+        merge(a, low, mid, high);
+    }
+}
+
+/* ------------------------------ main ------------------------------ */
+
+int main(void) {
+    int original[MAX], work[MAX];
+    int n = 0, choice, i;
+    const char *names[] = {"", "Bubble Sort", "Selection Sort",
+                           "Insertion Sort", "Quick Sort", "Merge Sort"};
+
+    while (1) {
+        printf("\n========== SORTING ALGORITHMS ==========\n");
+        printf("1. Bubble Sort\n");
+        printf("2. Selection Sort\n");
+        printf("3. Insertion Sort\n");
+        printf("4. Quick Sort\n");
+        printf("5. Merge Sort\n");
+        printf("6. Enter / change the array\n");
+        printf("7. Exit\n");
+        choice = read_int("Enter your choice: ");
+
+        if (choice == 7) {
+            printf("Exiting program.\n");
+            return 0;
+        }
+
+        if (choice == 6) {
+            n = read_int("Enter number of elements: ");
+            if (n < 1 || n > MAX) {
+                printf("Invalid size! Must be between 1 and %d.\n", MAX);
+                n = 0;
+                continue;
+            }
+            for (i = 0; i < n; i++) {
+                char prompt[30];
+                sprintf(prompt, "Enter element %d: ", i + 1);
+                original[i] = read_int(prompt);
+            }
+            continue;
+        }
+
+        if (choice < 1 || choice > 5) {
+            printf("Invalid choice! Please try again.\n");
+            continue;
+        }
+
+        if (n == 0) {
+            printf("Please enter the array first (option 6).\n");
+            continue;
+        }
+
+        /* sort a copy so the original array is preserved for other algorithms */
+        memcpy(work, original, n * sizeof(int));
+        comparisons = 0;
+
+        printf("\n%s\n", names[choice]);
+        printf("Before sorting: ");
+        print_array(work, n);
+
+        switch (choice) {
+            case 1: bubble_sort(work, n);           break;
+            case 2: selection_sort(work, n);        break;
+            case 3: insertion_sort(work, n);        break;
+            case 4: quick_sort(work, 0, n - 1);     break;
+            case 5: merge_sort(work, 0, n - 1);     break;
+        }
+
+        printf("After sorting : ");
+        print_array(work, n);
+        printf("Comparisons made: %ld\n", comparisons);
+    }
+}
