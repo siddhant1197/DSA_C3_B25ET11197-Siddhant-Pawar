@@ -1,0 +1,189 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX 5   /* maximum size of the array stack */
+
+/* ===================== STACK USING ARRAY ===================== */
+
+int arr[MAX];
+int arr_top = -1;               /* -1 means the stack is empty */
+
+void array_push(int value) {
+    if (arr_top == MAX - 1) {
+        printf("Stack Overflow! Array stack is full.\n");
+        return;
+    }
+    arr[++arr_top] = value;
+    printf("%d pushed onto the stack.\n", value);
+}
+
+void array_pop(void) {
+    if (arr_top == -1) {
+        printf("Stack Underflow! Stack is empty.\n");
+        return;
+    }
+    printf("%d popped from the stack.\n", arr[arr_top--]);
+}
+
+void array_display(void) {
+    int i;
+    if (arr_top == -1) {
+        printf("Stack is empty. TOP = -1\n");
+        return;
+    }
+    printf("Stack contents (top to bottom):\n");
+    for (i = arr_top; i >= 0; i--) {
+        printf("| %d |", arr[i]);
+        if (i == arr_top)
+            printf("  <-- TOP");
+        printf("\n");
+    }
+    printf("-----\n");
+    printf("Position of TOP: index %d (element number %d of %d)\n",
+           arr_top, arr_top + 1, MAX);
+}
+
+/* ================= STACK USING LINKED LIST =================== */
+
+struct Node {
+    int data;
+    struct Node *next;
+};
+
+struct Node *ll_top = NULL;
+int ll_count = 0;               /* number of nodes = position of TOP */
+
+void ll_push(int value) {
+    struct Node *newNode = (struct Node *)malloc(sizeof(struct Node));
+    if (newNode == NULL) {
+        printf("Stack Overflow! Memory allocation failed.\n");
+        return;
+    }
+    newNode->data = value;
+    newNode->next = ll_top;
+    ll_top = newNode;
+    ll_count++;
+    printf("%d pushed onto the stack.\n", value);
+}
+
+void ll_pop(void) {
+    struct Node *temp;
+    if (ll_top == NULL) {
+        printf("Stack Underflow! Stack is empty.\n");
+        return;
+    }
+    temp = ll_top;
+    printf("%d popped from the stack.\n", temp->data);
+    ll_top = ll_top->next;
+    free(temp);
+    ll_count--;
+}
+
+void ll_display(void) {
+    struct Node *temp = ll_top;
+    if (ll_top == NULL) {
+        printf("Stack is empty. TOP = NULL\n");
+        return;
+    }
+    printf("Stack contents (top to bottom):\n");
+    while (temp != NULL) {
+        printf("| %d |", temp->data);
+        if (temp == ll_top)
+            printf("  <-- TOP");
+        printf("\n");
+        temp = temp->next;
+    }
+    printf("-----\n");
+    printf("Position of TOP: node number %d (value %d)\n",
+           ll_count, ll_top->data);
+}
+
+void ll_free_all(void) {
+    while (ll_top != NULL) {
+        struct Node *temp = ll_top;
+        ll_top = ll_top->next;
+        free(temp);
+    }
+    ll_count = 0;
+}
+
+/* ========================= MENUS ============================= */
+
+void clear_input(void) {
+    while (getchar() != '\n');
+}
+
+void stack_menu(int useArray) {
+    int choice, value;
+
+    while (1) {
+        printf("\n===== STACK USING %s =====\n",
+               useArray ? "ARRAY" : "LINKED LIST");
+        printf("1. PUSH\n");
+        printf("2. POP\n");
+        printf("3. DISPLAY (with position of TOP)\n");
+        printf("4. Back to main menu\n");
+        printf("Enter your choice: ");
+
+        if (scanf("%d", &choice) != 1) {
+            printf("Invalid input! Please enter a number.\n");
+            clear_input();
+            continue;
+        }
+
+        switch (choice) {
+            case 1:
+                printf("Enter the value to push: ");
+                if (scanf("%d", &value) != 1) {
+                    printf("Invalid input!\n");
+                    clear_input();
+                    break;
+                }
+                useArray ? array_push(value) : ll_push(value);
+                break;
+            case 2:
+                useArray ? array_pop() : ll_pop();
+                break;
+            case 3:
+                useArray ? array_display() : ll_display();
+                break;
+            case 4:
+                return;
+            default:
+                printf("Invalid choice! Please try again.\n");
+        }
+    }
+}
+
+int main(void) {
+    int choice;
+
+    while (1) {
+        printf("\n========== STACK IMPLEMENTATION ==========\n");
+        printf("1. Stack using Array\n");
+        printf("2. Stack using Linked List\n");
+        printf("3. Exit\n");
+        printf("Enter your choice: ");
+
+        if (scanf("%d", &choice) != 1) {
+            printf("Invalid input! Please enter a number.\n");
+            clear_input();
+            continue;
+        }
+
+        switch (choice) {
+            case 1:
+                stack_menu(1);
+                break;
+            case 2:
+                stack_menu(0);
+                break;
+            case 3:
+                ll_free_all();
+                printf("Exiting program.\n");
+                return 0;
+            default:
+                printf("Invalid choice! Please try again.\n");
+        }
+    }
+}
